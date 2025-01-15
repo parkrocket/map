@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main
+      - master # 브랜치를 master로 변경
 
 jobs:
   deploy:
@@ -21,7 +21,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd /var/www/html
-            git pull origin main
+            git pull origin master  # master 브랜치에서 최신 코드 Pull
             cd frontend
             npm install
             npm run build
