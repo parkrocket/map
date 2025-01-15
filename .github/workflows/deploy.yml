@@ -28,7 +28,7 @@ jobs:
             cd /var/www/html &&
             git pull origin master ||
             git init &&
-            git remote add origin <GitHub-Repository-URL> &&
+            git remote add origin git@github.com:parkrocket/map.git &&
             git pull origin master &&
             cd frontend &&
             npm install &&
