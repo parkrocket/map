@@ -1,0 +1,18 @@
+# Node.js 및 Next.js 공통
+/backend/node_modules/
+/backend/.env
+/backend/.env.local
+
+/frontend/node_modules/
+/frontend/.env
+/frontend/.env.local
+
+# Next.js 빌드 파일
+/frontend/.next/
+
+/backend/debug.log
+/frontend/debug.log
+
+# 기타 OS 파일 및 로그
+*.log
+.DS_Store
