@@ -19,6 +19,7 @@ jobs:
           host: 13.124.3.73
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          debug: true # 디버그 활성화
           script: |
             cd /var/www/html
             git pull origin master  # master 브랜치에서 최신 코드 Pull
