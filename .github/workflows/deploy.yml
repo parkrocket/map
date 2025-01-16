@@ -29,7 +29,7 @@ jobs:
 
             cd /var/www/html &&
             git reset --hard HEAD &&
-            git pull origin master &&
+            git pull origin master --strategy-option theirs &&
 
             # 모든 PM2 프로세스 삭제 및 초기화
             pm2 kill &&
