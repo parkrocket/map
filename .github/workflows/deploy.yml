@@ -31,18 +31,21 @@ jobs:
             git reset --hard HEAD &&
             git pull origin master &&
 
+            # 모든 PM2 프로세스 삭제 및 초기화
+            pm2 kill &&
+            pm2 flush &&
+            pm2 delete all &&
+
             # 프론트엔드 빌드 및 실행
             cd /var/www/html/frontend &&
             npm install &&
             npm run build &&
-            pm2 delete frontend-app || true &&
             pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend &&
 
             # 백엔드 설치 및 실행
             if [ -d /var/www/html/backend ]; then
               cd /var/www/html/backend &&
               npm install &&
-              pm2 delete backend-app || true &&
               pm2 start /var/www/html/backend/app.js --name 'backend-app'
             else
               echo 'Backend directory not found. Skipping backend deployment.'
