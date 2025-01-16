@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - master
+      - master # master 브랜치에 푸시될 때 실행
 
 jobs:
   deploy:
@@ -15,9 +15,9 @@ jobs:
 
       - name: Deploy to EC2
         env:
-          HOST: 13.124.3.73
-          USERNAME: ubuntu
-          KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+          HOST: 13.124.3.73 # EC2 퍼블릭 IP
+          USERNAME: ubuntu # EC2 사용자 이름
+          KEY: ${{ secrets.EC2_PRIVATE_KEY }} # GitHub Secrets에 등록된 프라이빗 키
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
@@ -35,17 +35,14 @@ jobs:
             fi &&
             git pull origin master &&
 
-            # 프론트엔드 설치 및 빌드
+            # 프론트엔드 빌드 및 서버 실행
             cd frontend &&
             npm install &&
             npm run build &&
-            cp -r out /var/www/html/frontend/out &&
+            pm2 restart frontend-app || pm2 start npm --name 'frontend-app' -- start &&
 
             # 백엔드 설치 및 실행
             cd ../backend &&
             npm install &&
-            pm2 restart backend-app || pm2 start app.js --name 'backend-app' &&
-
-            # Nginx 재시작
-            sudo systemctl restart nginx
+            pm2 restart backend-app || pm2 start app.js --name 'backend-app'
           "
