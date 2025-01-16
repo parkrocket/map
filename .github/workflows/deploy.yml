@@ -29,12 +29,11 @@ jobs:
 
             cd /var/www/html &&
             git reset --hard HEAD &&
-            git pull origin master --strategy-option theirs &&
+            git pull origin master &&
 
             # 모든 PM2 프로세스 삭제 및 초기화
-            pm2 kill &&
+            pm2 delete all || true &&
             pm2 flush &&
-            pm2 delete all &&
 
             # 프론트엔드 빌드 및 실행
             cd /var/www/html/frontend &&
