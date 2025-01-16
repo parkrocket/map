@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 
 // API 예제 라우트
 app.get("/api/hello", (req, res) => {
-  res.json({ message: "Hello from API!" });
+  res.json({ message: "Hello from API!!!" });
 });
 
 // 서버 실행
