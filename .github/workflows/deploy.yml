@@ -36,7 +36,7 @@ jobs:
             npm install &&
             npm run build &&
             pm2 delete frontend-app || true &&
-            pm2 start npm --name 'frontend-app' -- start --cwd /var/www/html/frontend &&
+            pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend &&
 
             # 백엔드 설치 및 실행
             if [ -d /var/www/html/backend ]; then
