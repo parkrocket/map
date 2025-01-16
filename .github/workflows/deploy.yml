@@ -27,7 +27,6 @@ jobs:
             [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh &&
             nvm use 22.13.0 &&
 
-            # Git Pull
             cd /var/www/html &&
             git reset --hard HEAD &&
             git pull origin master &&
@@ -36,13 +35,15 @@ jobs:
             cd /var/www/html/frontend &&
             npm install &&
             npm run build &&
-            pm2 restart frontend-app --update-env || pm2 start npm --name 'frontend-app' -- start &&
+            pm2 delete frontend-app || true &&
+            pm2 start npm --name 'frontend-app' -- start &&
 
             # 백엔드 설치 및 실행
             if [ -d /var/www/html/backend ]; then
               cd /var/www/html/backend &&
               npm install &&
-              pm2 restart backend-app --update-env || pm2 start /var/www/html/backend/app.js --name 'backend-app'
+              pm2 delete backend-app || true &&
+              pm2 start /var/www/html/backend/app.js --name 'backend-app'
             else
               echo 'Backend directory not found. Skipping backend deployment.'
             fi
