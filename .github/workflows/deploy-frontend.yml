@@ -43,7 +43,8 @@ jobs:
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/ $USERNAME@$HOST:/home/ubuntu/frontend/
+          # Sync frontend to /var/www/html/frontend
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/ $USERNAME@$HOST:/var/www/html/frontend/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
             if ! command -v npm &> /dev/null; then
               curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash &&
@@ -52,8 +53,8 @@ jobs:
               nvm install 18 &&
               npm install -g pm2
             fi
-            cd /home/ubuntu/frontend &&
+            cd /var/www/html/frontend &&
             echo '${FRONTEND_ENV}' > .env &&
-            pm2 restart frontend-app || pm2 start npm --name frontend-app -- start --prefix /home/ubuntu/frontend;
+            pm2 restart frontend-app || pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend --cwd /var/www/html/frontend;
           "
           rm key.pem
