@@ -53,6 +53,6 @@ jobs:
           rsync -avz -e \"ssh -o StrictHostKeyChecking=no -i key.pem\" frontend/.next/ $USERNAME@$HOST:/home/ubuntu/frontend/.next/ &&
           cd /home/ubuntu/frontend &&
           npm install &&
-          pm2 restart frontend || pm2 start npm --name 'frontend-app' -- start;
+          pm2 restart frontend-app || pm2 start npm --name 'frontend-app' -- start --prefix /home/ubuntu/frontend;
           "
           rm key.pem
