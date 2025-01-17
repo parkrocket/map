@@ -43,10 +43,14 @@ jobs:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
           KEY: ${{ secrets.EC2_KEY }}
+          PRODUCTION_ENV_VARS: ${{ secrets.PRODUCTION_ENV_VARS }}
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
           # Build 결과물을 EC2 서버로 복사
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/out/ $USERNAME@$HOST:/var/www/html/frontend/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "sudo systemctl restart nginx"
+          cd /var/www/html/frontend &&
+            echo '${PRODUCTION_ENV_VARS}' > .env.production
+          "
           rm key.pem
