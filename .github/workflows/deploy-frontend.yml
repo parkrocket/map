@@ -1,4 +1,4 @@
-name: Deploy Frontend to EC2
+name: Deploy Next.js Frontend to EC2
 
 on:
   push:
@@ -18,7 +18,19 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Deploy Frontend
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build Next.js app
+        env:
+          CI: false
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Deploy to EC2
         env:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
@@ -26,7 +38,9 @@ jobs:
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
-          rsync -avz --exclude '.next/cache' -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/.next/ $USERNAME@$HOST:/home/ubuntu/frontend/.next/
+          # Ensure remote directory exists
+          ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "mkdir -p /home/ubuntu/frontend/.next"
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/.next/ $USERNAME@$HOST:/home/ubuntu/frontend/.next/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
             cd /home/ubuntu/frontend &&
             npm install &&
