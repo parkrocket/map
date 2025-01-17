@@ -62,5 +62,7 @@ jobs:
 
             # Nginx 재시작
             sudo systemctl restart nginx
+            echo '.env.production created with the following content:'
+            cat /var/www/html/frontend/.env.production
           "
           rm key.pem
