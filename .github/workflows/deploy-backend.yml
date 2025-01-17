@@ -1,9 +1,7 @@
-name: Deploy Node.js Backend to EC2
+name: Deploy Backend to EC2
 
 on:
   push:
-    paths:
-      - "backend/**"
     branches:
       - master
 
@@ -20,20 +18,7 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install dependencies
-        run: |
-          cd backend
-          npm install
-
-      - name: Create .ssh directory
-        run: |
-          mkdir -p ~/.ssh
-
-      - name: Add known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to EC2
+      - name: Deploy Backend
         env:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
