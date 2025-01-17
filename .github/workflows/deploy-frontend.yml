@@ -38,12 +38,21 @@ jobs:
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
-          # Ensure remote directory exists
-          ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "mkdir -p /home/ubuntu/frontend/.next"
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/.next/ $USERNAME@$HOST:/home/ubuntu/frontend/.next/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
-            cd /home/ubuntu/frontend &&
-            npm install &&
-            pm2 restart frontend || pm2 start npm --name 'frontend-app' -- start;
+          # Install NVM, Node.js, and PM2 if not installed
+          if ! command -v npm &> /dev/null; then
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash &&
+              export NVM_DIR=\$HOME/.nvm &&
+              [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh &&
+              nvm install 18 &&
+              npm install -g pm2
+          fi
+
+          # Deploy frontend
+          mkdir -p /home/ubuntu/frontend/.next &&
+          rsync -avz -e \"ssh -o StrictHostKeyChecking=no -i key.pem\" frontend/.next/ $USERNAME@$HOST:/home/ubuntu/frontend/.next/ &&
+          cd /home/ubuntu/frontend &&
+          npm install &&
+          pm2 restart frontend || pm2 start npm --name 'frontend-app' -- start;
           "
           rm key.pem

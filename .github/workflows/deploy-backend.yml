@@ -42,17 +42,19 @@ jobs:
           chmod 400 key.pem
           rsync -avz --exclude 'node_modules' -e "ssh -o StrictHostKeyChecking=no -i key.pem" backend/ $USERNAME@$HOST:/home/ubuntu/backend/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
-            # Install Node.js and PM2 if not installed
-            if ! command -v npm &> /dev/null; then
+          # Install Node.js and PM2 if not already installed
+          if ! command -v npm &> /dev/null; then
               curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash &&
-              . ~/.nvm/nvm.sh &&
+              export NVM_DIR=\$HOME/.nvm &&
+              [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh &&
               nvm install 18 &&
               npm install -g pm2
-            fi
+          fi
 
-            cd /home/ubuntu/backend &&
-            echo '${ENV_FILE_CONTENTS}' > .env &&
-            npm install &&
-            pm2 restart backend || pm2 start ecosystem.config.js --env production;
+          cd /home/ubuntu/backend &&
+          echo '${ENV_FILE_CONTENTS}' > .env &&
+          npm install &&
+          pm2 delete backend || true &&
+          pm2 start ecosystem.config.js --env production;
           "
           rm key.pem
