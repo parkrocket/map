@@ -46,15 +46,16 @@ jobs:
           # Sync frontend to /var/www/html/frontend
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/ $USERNAME@$HOST:/var/www/html/frontend/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
-            if ! command -v npm &> /dev/null; then
+          if ! command -v npm &> /dev/null; then
               curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash &&
               export NVM_DIR=\$HOME/.nvm &&
               [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh &&
               nvm install 18 &&
               npm install -g pm2
-            fi
-            cd /var/www/html/frontend &&
-            echo '${FRONTEND_ENV}' > .env &&
-            pm2 restart frontend-app || pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend --cwd /var/www/html/frontend;
+          fi
+          # PM2 실행
+          cd /var/www/html/frontend &&
+          echo '${FRONTEND_ENV}' > .env &&
+          pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend;
           "
           rm key.pem
