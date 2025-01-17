@@ -13,7 +13,7 @@ export default function MapPage() {
     const fetchPlaces = async () => {
       try {
         const response = await axios.post(`${API_URL}/api/place/list`, {
-          key: "value", // 필요 시 요청 본문 추가!!
+          key: "value", // 필요 시 요청 본문 추가!!!
         });
 
         console.log(response.data);
