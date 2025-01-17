@@ -22,10 +22,15 @@ jobs:
         with:
           node-version: "18"
 
-      # 3. 의존성 설치 및 빌드
+      # 3. .env.production 파일 생성 및 의존성 설치, 빌드
       - name: Install dependencies and build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           cd frontend
+          # .env.production 파일 생성
+          echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" > .env.production
+          # 의존성 설치 및 빌드
           npm install
           npm run build # 정적 파일 빌드 (next build 사용)
 
@@ -43,7 +48,6 @@ jobs:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
           KEY: ${{ secrets.EC2_KEY }}
-          PRODUCTION_ENV_VARS: ${{ secrets.PRODUCTION_ENV_VARS }}
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
@@ -51,18 +55,16 @@ jobs:
           # Build 결과물을 EC2 서버로 복사
           rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/out/ $USERNAME@$HOST:/var/www/html/frontend/
 
+          # SSH로 EC2 서버에서 추가 작업
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
-            # 디렉토리 확인 및 환경변수 작성
+            # 디렉토리 확인 및 Nginx 재시작
             if [ ! -d /var/www/html/frontend ]; then
               mkdir -p /var/www/html/frontend
             fi
 
-            # 환경변수 작성
-            echo '${PRODUCTION_ENV_VARS}' > /var/www/html/frontend/.env.production
-
-            # Nginx 재시작
+            # PM2 프로세스 환경변수 업데이트
+            cd /var/www/html/frontend &&
+            pm2 restart frontend-app --update-env || pm2 start npm --name frontend-app -- start
             sudo systemctl restart nginx
-            echo '.env.production created with the following content:'
-            cat /var/www/html/frontend/.env.production
           "
           rm key.pem
