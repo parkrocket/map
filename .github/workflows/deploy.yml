@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 리포지토리 체크아웃
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # 2. EC2에 배포 및 실행
       - name: Deploy to EC2
         env:
           HOST: 13.124.3.73
@@ -46,12 +44,16 @@ jobs:
             pm2 delete all || true &&
             pm2 flush &&
 
-            # 환경 변수 설정
-            echo \"API_URL=${API_URL_PROD}\" > .env &&
-            echo \"DB_HOST=${DB_HOST}\" >> .env &&
-            echo \"DB_USER=${DB_USER}\" >> .env &&
-            echo \"DB_PASSWORD=${DB_PASSWORD}\" >> .env &&
-            echo \"DB_NAME=${DB_NAME}\" >> .env &&
+            # .env 파일이 없는 경우에만 생성
+            if [ ! -f .env ]; then
+              echo \"API_URL=${API_URL_PROD}\" > .env &&
+              echo \"DB_HOST=${DB_HOST}\" >> .env &&
+              echo \"DB_USER=${DB_USER}\" >> .env &&
+              echo \"DB_PASSWORD=${DB_PASSWORD}\" >> .env &&
+              echo \"DB_NAME=${DB_NAME}\" >> .env
+            else
+              echo '.env 파일이 이미 존재합니다. 새로 생성하지 않습니다.'
+            fi
 
             # 프론트엔드 빌드 및 실행
             cd /var/www/html/frontend &&
