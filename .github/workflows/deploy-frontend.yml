@@ -1,4 +1,4 @@
-name: Deploy Frontend to EC2
+name: Deploy Static Frontend to EC2
 
 on:
   push:
@@ -12,50 +12,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 리포지토리 체크아웃
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # 2. Node.js 설치
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      - name: Build Frontend
+      # 3. 의존성 설치 및 빌드
+      - name: Install dependencies and build
         run: |
           cd frontend
           npm install
           npm run build
+          npm run export # 정적 파일로 빌드
 
+      # 4. Create .ssh directory
       - name: Create .ssh directory
-        run: |
-          mkdir -p ~/.ssh
+        run: mkdir -p ~/.ssh
 
+      # 5. Add known_hosts
       - name: Add known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy Frontend to EC2
+      # 6. Deploy to EC2
+      - name: Deploy to EC2
         env:
           HOST: ${{ secrets.EC2_HOST }}
           USERNAME: ${{ secrets.EC2_USER }}
           KEY: ${{ secrets.EC2_KEY }}
-          FRONTEND_ENV: ${{ secrets.FRONTEND_ENV }}
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
-          # Sync frontend to /var/www/html/frontend
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/ $USERNAME@$HOST:/var/www/html/frontend/
-          ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "
-          if ! command -v npm &> /dev/null; then
-              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash &&
-              export NVM_DIR=\$HOME/.nvm &&
-              [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh &&
-              nvm install 18 &&
-              npm install -g pm2
-          fi
-          # PM2 실행
-          cd /var/www/html/frontend &&
-          echo '${FRONTEND_ENV}' > .env &&
-          pm2 start npm --name 'frontend-app' -- start --prefix /var/www/html/frontend;
-          "
+          # Build 결과물을 EC2 서버의 Nginx 디렉토리에 복사
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/out/ $USERNAME@$HOST:/var/www/html/
+          ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "sudo systemctl restart nginx"
           rm key.pem
