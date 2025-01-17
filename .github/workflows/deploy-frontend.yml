@@ -27,7 +27,7 @@ jobs:
         run: |
           cd frontend
           npm install
-          npm run build # 정적 파일 빌드 (next build 사용)
+          npm run build # 정적 파일 빌드 (next build 사용!)
 
       # 4. Create .ssh directory
       - name: Create .ssh directory
