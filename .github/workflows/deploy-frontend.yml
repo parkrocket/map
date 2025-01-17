@@ -27,8 +27,7 @@ jobs:
         run: |
           cd frontend
           npm install
-          npm run build
-          npm run export # 정적 파일로 빌드
+          npm run build # 정적 파일 빌드 (next build 사용)
 
       # 4. Create .ssh directory
       - name: Create .ssh directory
@@ -47,7 +46,7 @@ jobs:
         run: |
           echo "${KEY}" > key.pem
           chmod 400 key.pem
-          # Build 결과물을 EC2 서버의 Nginx 디렉토리에 복사
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/out/ $USERNAME@$HOST:/var/www/html/
+          # Build 결과물을 EC2 서버로 복사
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i key.pem" frontend/out/ $USERNAME@$HOST:/var/www/html/frontend/
           ssh -o StrictHostKeyChecking=no -i key.pem $USERNAME@$HOST "sudo systemctl restart nginx"
           rm key.pem
