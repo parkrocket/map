@@ -1,80 +1,87 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import axios from "axios";
 
-export default function Map() {
-  const [location, setLocation] = useState(null); // 현재 위치 상태 저장
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export default function MapPage() {
+  const [places, setPlaces] = useState([]);
 
   useEffect(() => {
-    // 현재 위치 가져오기
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setLocation({ latitude, longitude }); // 위치 저장
-          console.log("정확도 (미터):", position.coords.accuracy); // 낮을수록 정확함
-        },
-        (error) => {
-          console.error("Geolocation Error: ", error);
-        },
-        {
-          enableHighAccuracy: true, // 높은 정확도를 요청
-          timeout: 5000, // 5초 내에 위치를 가져오지 못하면 에러 반환
-          maximumAge: 0, // 이전 위치 캐시를 사용하지 않음
-        }
-      );
-    } else {
-      console.error("Geolocation을 지원하지 않는 브라우저입니다.");
-    }
+    // Axios로 API 데이터 가져오기
+    const fetchPlaces = async () => {
+      try {
+        const response = await axios.post(`${API_URL}/api/place/list`, {
+          key: "value", // 필요 시 요청 본문 추가
+        });
+
+        console.log(response.data);
+
+        setPlaces(response.data); // 데이터 저장
+      } catch (error) {
+        console.error("Failed to fetch places:", error);
+      }
+    };
+
+    fetchPlaces();
   }, []);
 
   useEffect(() => {
-    if (location) {
-      console.log(location);
-      // 카카오 지도 API 스크립트 로드
-      const script = document.createElement("script");
-      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=47bcac0516ed57ecce30dfe560fad4dd&autoload=false`;
-      script.async = true;
+    if (places.length === 0) return; // 데이터가 없으면 실행하지 않음
 
-      script.onload = () => {
-        kakao.maps.load(() => {
-          const container = document.getElementById("map"); // 지도를 표시할 div
-          const options = {
-            center: new kakao.maps.LatLng(
-              location.latitude,
-              location.longitude
-            ), // 현재 위치로 중심 설정
-            level: 3, // 지도 확대 레벨
-          };
+    const script = document.createElement("script");
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=47bcac0516ed57ecce30dfe560fad4dd&autoload=false&libraries=services`;
+    script.async = true;
 
-          const map = new kakao.maps.Map(container, options); // 지도 생성
+    script.onload = () => {
+      kakao.maps.load(() => {
+        const container = document.getElementById("map");
+        const options = {
+          center: new kakao.maps.LatLng(37.5665, 126.978),
+          level: 5,
+        };
+        const map = new kakao.maps.Map(container, options);
 
-          console.log(location.latitude, location.longitude);
+        // 장소 데이터로 마커 표시
+        places.forEach((place) => {
+          const geocoder = new kakao.maps.services.Geocoder();
 
-          // 현재 위치에 마커 추가
-          const markerPosition = new kakao.maps.LatLng(
-            location.latitude,
-            location.longitude
-          );
-          const marker = new kakao.maps.Marker({
-            position: markerPosition,
+          geocoder.addressSearch(place.addr, (result, status) => {
+            if (status === kakao.maps.services.Status.OK) {
+              const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+              const marker = new kakao.maps.Marker({
+                map: map,
+                position: coords,
+              });
+
+              const infowindow = new kakao.maps.InfoWindow({
+                content: `<div style="padding:5px;">${place.name}</div>`,
+              });
+
+              kakao.maps.event.addListener(marker, "mouseover", () =>
+                infowindow.open(map, marker)
+              );
+              kakao.maps.event.addListener(marker, "mouseout", () =>
+                infowindow.close()
+              );
+            }
           });
-          marker.setMap(map); // 지도에 마커 표시
         });
-      };
+      });
+    };
 
-      document.head.appendChild(script);
-    }
-  }, [location]); // location이 변경되면 지도 로드
-
+    document.head.appendChild(script);
+  }, [places]);
   return (
     <div>
-      <h1>현재 위치 지도</h1>
+      <h1>지도</h1>
       <div
         id="map"
         style={{
           width: "100%",
-          height: "500px", // 지도의 높이 설정
+          height: "500px",
         }}
       ></div>
     </div>
