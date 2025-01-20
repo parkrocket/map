@@ -11,6 +11,7 @@ export default function MapPage() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [mapInstance, setMapInstance] = useState(null);
 
+  // 사용자 위치 가져오기
   useEffect(() => {
     if (!navigator.geolocation) {
       console.error("Geolocation is not supported by this browser.");
@@ -30,6 +31,7 @@ export default function MapPage() {
     );
   }, []);
 
+  // axios로 장소 데이터 가져오기
   useEffect(() => {
     const fetchPlaces = async () => {
       try {
@@ -48,6 +50,7 @@ export default function MapPage() {
     fetchPlaces();
   }, []);
 
+  // Kakao 지도 스크립트 로드
   useEffect(() => {
     if (!userLocation) return;
 
@@ -62,8 +65,9 @@ export default function MapPage() {
     document.head.appendChild(script);
   }, [userLocation]);
 
+  // 지도와 마커 설정
   useEffect(() => {
-    if (!isMapLoaded || places.length === 0) return;
+    if (!isMapLoaded || !userLocation) return;
 
     kakao.maps.load(() => {
       const container = document.getElementById("map");
@@ -75,8 +79,8 @@ export default function MapPage() {
 
       setMapInstance(map);
 
-      // 현재 위치에 커스텀 오버레이 추가
-      const customOverlayContent = `
+      // 내 위치 표시 (기존 둥근 📍 스타일 유지)
+      const currentLocationOverlay = `
         <div style="
           background-color: #007BFF; 
           border: 2px solid #007BFF; 
@@ -86,46 +90,76 @@ export default function MapPage() {
           display: flex; 
           align-items: center; 
           justify-content: center; 
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        ">
-          <span style="color: #007BFF; font-weight: bold;">📍</span>
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+          <span style="color: white; font-weight: bold;">📍</span>
         </div>
       `;
 
       new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
-        content: customOverlayContent,
+        content: currentLocationOverlay,
         map: map,
         zIndex: 10,
       });
 
-      // 장소 데이터로 마커 표시
+      // axios로 가져온 데이터의 마커 추가 (말풍선 모양)
       places.forEach((place) => {
         const geocoder = new kakao.maps.services.Geocoder();
+
         geocoder.addressSearch(place.addr, (result, status) => {
           if (status === kakao.maps.services.Status.OK) {
             const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-            const marker = new kakao.maps.Marker({
-              map: map,
+
+            // 말풍선 모양의 커스텀 오버레이
+            const customOverlayContent = `
+            <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
+              <div style="
+                background-color: white; 
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                padding: 5px 10px;
+                font-size: 12px;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+              ">
+                <div style="color: red; font-weight: bold;">${place.name}</div>
+                <div style="color: gray; margin-top: 5px;">${place.trophy_company}</div>
+              </div>
+              <div style="
+                position: relative;
+                width: 0; 
+                height: 0; 
+                border-left: 10px solid transparent; 
+                border-right: 10px solid transparent; 
+                border-top: 10px solid #ccc; /* 바깥 테두리 */
+              ">
+                <div style="
+                  position: absolute;
+                  top: -12px; /* 테두리 두께 보정 */
+                  left: -10px;
+                  width: 0; 
+                  height: 0; 
+                  border-left: 10px solid transparent; 
+                  border-right: 10px solid transparent; 
+                  border-top: 10px solid #fff; /* 안쪽 색상 */
+                "></div>
+              </div>
+            </div>
+            `;
+
+            new kakao.maps.CustomOverlay({
               position: coords,
+              content: customOverlayContent,
+              map: map,
+              yAnchor: 1.5, // 말풍선의 꼭지점이 위치를 가리킴
             });
-
-            const infowindow = new kakao.maps.InfoWindow({
-              content: `<div style="padding:5px;">${place.name}</div>`,
-            });
-
-            kakao.maps.event.addListener(marker, "mouseover", () =>
-              infowindow.open(map, marker)
-            );
-            kakao.maps.event.addListener(marker, "mouseout", () =>
-              infowindow.close()
-            );
           }
         });
       });
     });
-  }, [isMapLoaded, places]);
+  }, [isMapLoaded, userLocation, places]);
 
+  // 현재 위치로 이동
   const focusOnUserLocation = () => {
     if (mapInstance && userLocation) {
       const moveLatLon = new kakao.maps.LatLng(
