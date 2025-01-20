@@ -7,13 +7,35 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function MapPage() {
   const [places, setPlaces] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    // Geolocation 지원 여부 확인
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported by this browser.");
+      setUserLocation({ lat: 37.5665, lng: 126.978 }); // 기본 위치(서울) 설정
+      return;
+    }
+
+    // 사용자 위치 가져오기
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+      },
+      (error) => {
+        console.error("Error fetching geolocation:", error);
+        setUserLocation({ lat: 37.5665, lng: 126.978 }); // 기본 위치(서울) 설정
+      }
+    );
+  }, []);
 
   useEffect(() => {
     // Axios로 API 데이터 가져오기
     const fetchPlaces = async () => {
       try {
         const response = await axios.post(`${API_URL}/api/place/list`, {
-          key: "value", // 필요 시 요청 본문 추가!!!
+          key: "value", // 필요 시 요청 본문 추가
         });
 
         console.log(response.data);
@@ -28,7 +50,7 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (places.length === 0) return; // 데이터가 없으면 실행하지 않음
+    if (!userLocation || places.length === 0) return; // 사용자 위치나 데이터가 없으면 실행하지 않음
 
     const script = document.createElement("script");
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=47bcac0516ed57ecce30dfe560fad4dd&autoload=false&libraries=services`;
@@ -38,7 +60,7 @@ export default function MapPage() {
       kakao.maps.load(() => {
         const container = document.getElementById("map");
         const options = {
-          center: new kakao.maps.LatLng(37.5665, 126.978),
+          center: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
           level: 5,
         };
         const map = new kakao.maps.Map(container, options);
@@ -73,7 +95,8 @@ export default function MapPage() {
     };
 
     document.head.appendChild(script);
-  }, [places]);
+  }, [userLocation, places]);
+
   return (
     <div>
       <h1>지도</h1>
