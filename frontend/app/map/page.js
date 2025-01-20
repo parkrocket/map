@@ -8,6 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export default function MapPage() {
   const [places, setPlaces] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   useEffect(() => {
     // Geolocation 지원 여부 확인
@@ -50,63 +51,71 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (!userLocation || places.length === 0) return; // 사용자 위치나 데이터가 없으면 실행하지 않음
+    if (!userLocation) return; // 사용자 위치가 없으면 실행하지 않음
 
     const script = document.createElement("script");
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=47bcac0516ed57ecce30dfe560fad4dd&autoload=false&libraries=services`;
     script.async = true;
 
     script.onload = () => {
-      kakao.maps.load(() => {
-        const container = document.getElementById("map");
-        const options = {
-          center: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
-          level: 5,
-        };
-        const map = new kakao.maps.Map(container, options);
-
-        // 장소 데이터로 마커 표시
-        places.forEach((place) => {
-          const geocoder = new kakao.maps.services.Geocoder();
-
-          geocoder.addressSearch(place.addr, (result, status) => {
-            if (status === kakao.maps.services.Status.OK) {
-              const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
-              const marker = new kakao.maps.Marker({
-                map: map,
-                position: coords,
-              });
-
-              const infowindow = new kakao.maps.InfoWindow({
-                content: `<div style="padding:5px;">${place.name}</div>`,
-              });
-
-              kakao.maps.event.addListener(marker, "mouseover", () =>
-                infowindow.open(map, marker)
-              );
-              kakao.maps.event.addListener(marker, "mouseout", () =>
-                infowindow.close()
-              );
-            }
-          });
-        });
-      });
+      setIsMapLoaded(true); // 스크립트 로드 완료 상태 업데이트
     };
 
     document.head.appendChild(script);
-  }, [userLocation, places]);
+  }, [userLocation]);
+
+  useEffect(() => {
+    if (!isMapLoaded || places.length === 0) return;
+
+    kakao.maps.load(() => {
+      const container = document.getElementById("map");
+      const options = {
+        center: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+        level: 5, // 기본 줌 레벨
+      };
+      const map = new kakao.maps.Map(container, options);
+
+      // 마커 비동기 렌더링
+      places.forEach((place) => {
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.addressSearch(place.addr, (result, status) => {
+          if (status === kakao.maps.services.Status.OK) {
+            const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+            const marker = new kakao.maps.Marker({
+              map: map,
+              position: coords,
+            });
+
+            const infowindow = new kakao.maps.InfoWindow({
+              content: `<div style="padding:5px;">${place.name}</div>`,
+            });
+
+            kakao.maps.event.addListener(marker, "mouseover", () =>
+              infowindow.open(map, marker)
+            );
+            kakao.maps.event.addListener(marker, "mouseout", () =>
+              infowindow.close()
+            );
+          }
+        });
+      });
+    });
+  }, [isMapLoaded, places]);
 
   return (
     <div>
       <h1>지도</h1>
-      <div
-        id="map"
-        style={{
-          width: "100%",
-          height: "500px",
-        }}
-      ></div>
+      {!isMapLoaded ? (
+        <div>지도 로드 중...</div> // 로딩 메시지
+      ) : (
+        <div
+          id="map"
+          style={{
+            width: "100%",
+            height: "calc(100vh - 100px)", // 모바일 화면 높이에 맞게 조정
+          }}
+        ></div>
+      )}
     </div>
   );
 }
