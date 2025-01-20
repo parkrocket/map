@@ -9,16 +9,15 @@ export default function MapPage() {
   const [places, setPlaces] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [mapInstance, setMapInstance] = useState(null);
 
   useEffect(() => {
-    // Geolocation 지원 여부 확인
     if (!navigator.geolocation) {
       console.error("Geolocation is not supported by this browser.");
-      setUserLocation({ lat: 37.5665, lng: 126.978 }); // 기본 위치(서울) 설정
+      setUserLocation({ lat: 37.5665, lng: 126.978 });
       return;
     }
 
-    // 사용자 위치 가져오기
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -26,22 +25,21 @@ export default function MapPage() {
       },
       (error) => {
         console.error("Error fetching geolocation:", error);
-        setUserLocation({ lat: 37.5665, lng: 126.978 }); // 기본 위치(서울) 설정
+        setUserLocation({ lat: 37.5665, lng: 126.978 });
       }
     );
   }, []);
 
   useEffect(() => {
-    // Axios로 API 데이터 가져오기
     const fetchPlaces = async () => {
       try {
         const response = await axios.post(`${API_URL}/api/place/list`, {
-          key: "value", // 필요 시 요청 본문 추가
+          key: "value",
         });
 
         console.log(response.data);
 
-        setPlaces(response.data); // 데이터 저장
+        setPlaces(response.data);
       } catch (error) {
         console.error("Failed to fetch places:", error);
       }
@@ -51,14 +49,14 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (!userLocation) return; // 사용자 위치가 없으면 실행하지 않음
+    if (!userLocation) return;
 
     const script = document.createElement("script");
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=47bcac0516ed57ecce30dfe560fad4dd&autoload=false&libraries=services`;
     script.async = true;
 
     script.onload = () => {
-      setIsMapLoaded(true); // 스크립트 로드 완료 상태 업데이트
+      setIsMapLoaded(true);
     };
 
     document.head.appendChild(script);
@@ -71,11 +69,37 @@ export default function MapPage() {
       const container = document.getElementById("map");
       const options = {
         center: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
-        level: 5, // 기본 줌 레벨
+        level: 5,
       };
       const map = new kakao.maps.Map(container, options);
 
-      // 마커 비동기 렌더링
+      setMapInstance(map);
+
+      // 현재 위치에 커스텀 오버레이 추가
+      const customOverlayContent = `
+        <div style="
+          background-color: #007BFF; 
+          border: 2px solid #007BFF; 
+          border-radius: 50%; 
+          width: 25px; 
+          height: 25px; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        ">
+          <span style="color: #007BFF; font-weight: bold;">📍</span>
+        </div>
+      `;
+
+      new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+        content: customOverlayContent,
+        map: map,
+        zIndex: 10,
+      });
+
+      // 장소 데이터로 마커 표시
       places.forEach((place) => {
         const geocoder = new kakao.maps.services.Geocoder();
         geocoder.addressSearch(place.addr, (result, status) => {
@@ -102,17 +126,44 @@ export default function MapPage() {
     });
   }, [isMapLoaded, places]);
 
+  const focusOnUserLocation = () => {
+    if (mapInstance && userLocation) {
+      const moveLatLon = new kakao.maps.LatLng(
+        userLocation.lat,
+        userLocation.lng
+      );
+      mapInstance.setCenter(moveLatLon);
+    }
+  };
+
   return (
     <div>
       <h1>지도</h1>
+      <button
+        onClick={focusOnUserLocation}
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          zIndex: 1000,
+          padding: "10px 20px",
+          backgroundColor: "#007BFF",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        현재 위치로 이동
+      </button>
       {!isMapLoaded ? (
-        <div>지도 로드 중...</div> // 로딩 메시지
+        <div>지도 로드 중...</div>
       ) : (
         <div
           id="map"
           style={{
             width: "100%",
-            height: "calc(100vh - 100px)", // 모바일 화면 높이에 맞게 조정
+            height: "calc(100vh - 100px)",
           }}
         ></div>
       )}
